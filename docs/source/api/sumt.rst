@@ -48,4 +48,82 @@ Definitions
 Examples
 --------
 
+Rosenbrock Function
+~~~~~~~~~~~~~~~~~~~
 
+Code to run this example is given below. This is a simple example to minimize the `Rosenbrock function <https://en.wikipedia.org/wiki/Rosenbrock_function>`_, with nonlinear inequality constraints.
+
+.. math::
+
+   f(x,y) = 100(y - x^2)^2 + (1 - x)^2
+
+subject to the constraints:
+
+.. math::
+
+   x^2 + y^2 \leq 2, \ x \leq 1, \ y \leq 1
+
+
+.. toggle-header::
+    :header: **Eigen (Click to show/hide)**
+
+    .. code:: cpp
+
+        #define OPTIM_ENABLE_EIGEN_WRAPPERS
+        #include "optim.hpp"
+        
+        inline double rosenbrock_fn(const Eigen::VectorXd& vals_inp, Eigen::VectorXd* grad_out, void* opt_data)
+         {
+            double x = vals_inp(0);
+            double y = vals_inp(1);
+
+            double obj_val = 100*std::pow(y - x*x, 2) + std::pow(1 - x, 2);
+
+            if(grad_out) {
+               (*grad_out)(0) = -400*x*(y - x*x) + 2*x - 2;
+               (*grad_out)(1) = 200*(y - x*x);
+            }
+
+            return obj_val;
+
+         }
+
+         Eigen::VectorXd inequality_cons(const Eigen::VectorXd& vals_inp, Eigen::MatrixXd* jacob_out, void* constr_data)
+         {
+
+            Eigen::VectorXd g(3);
+            g(0) = 2 - vals_inp(0)*vals_inp(0) - vals_inp(1)*vals_inp(1);
+            g(1) = 1 - vals_inp(0);
+            g(2) = 1 - vals_inp(1);
+
+            if(jacob_out) {
+               jacob_out->resize(3, 2);
+               (*jacob_out)(0, 0) = -2*vals_inp(0);
+               (*jacob_out)(0, 1) = -2*vals_inp(1);
+               (*jacob_out)(1, 0) = -1;
+               (*jacob_out)(1, 1) = 0;
+               (*jacob_out)(2, 0) = 0;
+               (*jacob_out)(2, 1) = -1;
+            }
+
+            return g;
+
+         }
+        
+        int main()
+        {
+            const int test_dim = 2;
+            Eigen::VectorXd x = Eigen::VectorXd::Zero(test_dim);
+
+            bool success = optim::sumt(x, rosenbrock_fn, nullptr, inequality_cons, nullptr);
+        
+            if (success) {
+                std::cout << "sumt: Rosenbrock test completed successfully." << "\n";
+            } else {
+                std::cout << "sumt: Rosenbrock test completed unsuccessfully." << "\n";
+            }
+        
+            std::cout << "sumt: solution to Rosenbrock test:\n" << x << std::endl;
+        
+            return 0;
+        }
